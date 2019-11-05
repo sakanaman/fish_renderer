@@ -198,3 +198,24 @@ void BBVHNode<Real>::SetAABB(const AABB<Real>& _aabb)
 
 
 //BinaryBVH implementation
+enum class Evaluator
+{
+    SAH
+};
+
+template<class Real, class ShapeData>
+BinaryBVH<Real, ShapeData>::BinaryBVH(ShapeData _shapedata, int face_num)
+{
+    faces = std::vector<Real>(face_num);
+    for(int i = 0; i < face_num; ++i)
+    {
+        faces[i] = i;
+    }
+    shapedata = _shapedata;
+    aabbs = std::make_unique<AABB<Real>[]>(face_num);
+    for(int i = 0; i < face_num; ++i)
+    {
+        
+    }
+    bvh_nodes = std::make_unique<BBVHNode<Real>[]>(3 * face_num);
+}

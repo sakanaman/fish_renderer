@@ -83,4 +83,27 @@ private:
     std::vector<int> faces;
 };
 
+//shapedata
+template<class Real>
+class TriangleData
+{
+public:
+    TriangleData(Real* vertices, Real* indices);
+    bool intersect(int geomID, const Ray<Real>& ray, Hit<Real>& hit);
+    void makeAABB(int geomID);
+private:
+    Real* vertices;
+    Real* indices;
+};
+
+template<class Real>
+class SphereData
+{
+public:
+    SphereData(Real* rad_cents);
+    bool intersect(int geomID, const Ray<Real>& ray, Hit<Real>& hit);
+    void makeAABB(int geomID, Real* max, Real* min);
+private:
+    Real* rad_cents;
+};
 #endif
