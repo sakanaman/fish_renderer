@@ -11,12 +11,12 @@ class Hit
 public:
     Real* GetPos();
     Real* GetNg();
-    Real GetT();
-    void SetT(Real _t);
-    int GetID();
-    void SetPos(Real* pos);
-    void SetNg(Real* n);
-    void SetID(int num);
+    Real GetT() const;
+    void SetT(const Real _t);
+    int GetID() const;
+    void SetPos(const Real* pos);
+    void SetNg(const Real* n);
+    void SetID(const int num);
 private:
     Real point[3];
     Real normal[3];
@@ -28,9 +28,9 @@ template<class Real>
 class Ray
 {
 public:
-    Ray(Real* _origin, Real* _dir);
-    void SetDir(Real* _dir);
-    void SetOrigin(Real* _origin);
+    Ray(const Real* _origin,const Real* _dir);
+    void SetDir(const Real* _dir);
+    void SetOrigin(const Real* _origin);
     Real* GetDir();
     Real* GetOrigin();
 private:
@@ -45,22 +45,28 @@ template<class Real>
 class AABB
 {
 public:
-    AABB(Real* max, Real* min);
+    AABB(const Real* max,const Real* min);
     AABB();
-    void Setter(Real* max, Real* min);
+    void Setter(const Real* max, const Real* min);
     bool intersect(Ray<Real>& ray) const;
-    AABB Union(const AABB& r);
-    AABB Union(const Real a[3]);
-    Real GetMax(Axis axis);
-    Real GetMin(Axis axis);
-    Real AreaAABB();
+    AABB Union(const AABB& r) const;
+    AABB Union(const Real a[3]) const;
+    Real GetMax(const Axis axis) const;
+    Real GetMin(const Axis axis) const;
+    Real AreaAABB() const;
 private:
-    Real max[3] =  {std::numeric_limits<Real>::lowest(),
-                    std::numeric_limits<Real>::lowest(),
-                    std::numeric_limits<Real>::lowest()};;
-    Real min[3] =  {std::numeric_limits<Real>::max(),
-                    std::numeric_limits<Real>::max(),
-                    std::numeric_limits<Real>::max()};
+    // Real max[3] =  {std::numeric_limits<Real>::lowest(),
+    //                 std::numeric_limits<Real>::lowest(),
+    //                 std::numeric_limits<Real>::lowest()};;
+    // Real min[3] =  {std::numeric_limits<Real>::max(),
+    //                 std::numeric_limits<Real>::max(),
+    //                 std::numeric_limits<Real>::max()};
+    Real max[3] = {-1000000,
+                   -1000000,
+                   -1000000};
+    Real min[3] = {1000000,
+                   1000000,
+                   1000000,};
 };
 
 
@@ -68,30 +74,33 @@ template<class Real>
 class BBVHNode
 {
 public:
-    void SetSplitDimention(Axis axis);
-    void SetChildIndex(LR lr, int index);
-    void SetLeafNode(int range[3]);
+    void SetSplitDimention(const Axis axis);
+    void SetChildIndex(const LR lr,const int index);
+    void SetLeafNode(const int* range);
     void SetAABB(const AABB<Real>& aabb);
-    bool isLeaf();
-    int GetBegin();
-    int GetEnd();
-    int GetChild(LR lr);
-    AABB<Real> GetAABB(); 
+    bool isLeaf() const;
+    int GetBegin() const;
+    int GetEnd() const;
+    int GetChild(const LR lr);
+    AABB<Real> GetAABB() const;
 private:
     AABB<Real> aabb;
     int childinfo_left = 0;
     int childinfo_right = 0;
 };
 
-enum class Evaluator;
+enum class Evaluator
+{
+    SAH
+};
 template<class Real, class ShapeData>
 class BinaryBVH
 {
 public:
-    BinaryBVH(const ShapeData& shapedata, int face_num);
-    int PartitionSAH(int range[3], AABB<Real>& bigaabb);
-    void BuildBVH(Evaluator split_way);
-    bool Traverse(Hit<Real>& hit, Ray<Real>& ray, int index);
+    BinaryBVH(const ShapeData& shapedata, const int face_num);
+    int PartitionSAH(const int* range, const AABB<Real>& bigaabb);
+    void BuildBVH(const Evaluator split_way);
+    bool Traverse(Hit<Real>& hit, Ray<Real>& ray, const int index) const;
 private:
     ShapeData shapedata;
     std::unique_ptr<BBVHNode<Real>[]> bvh_nodes;
@@ -119,8 +128,8 @@ class SphereData
 public:
     SphereData();
     SphereData(Real* rad_cents);
-    bool intersect(int geomID, Ray<Real>& ray, Hit<Real>& hit);
-    void makeAABB(int geomID, AABB<Real>& aabb);
+    bool intersect(const int geomID, Ray<Real>& ray, Hit<Real>& hit) const;
+    void makeAABB(const int geomID, AABB<Real>& aabb) const;
 private:
     Real* rad_cents;
     //__________________________________________

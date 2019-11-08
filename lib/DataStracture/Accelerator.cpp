@@ -1,15 +1,17 @@
 #include "Accelerator.hpp"
 #include <cmath>
+#include <bitset>
+#include <iostream>
 
 //Hit class implementation
 template<class Real>
-Real Hit<Real>::GetT()
+Real Hit<Real>::GetT() const
 {
     return t;
 }
 
 template<class Real>
-void Hit<Real>::SetT(Real _t)
+void Hit<Real>::SetT(const Real _t)
 {
     t = _t;
 }
@@ -27,13 +29,13 @@ Real* Hit<Real>::GetNg()
 }
 
 template<class Real>
-int Hit<Real>::GetID()
+int Hit<Real>::GetID() const
 {
     return geomID;
 }
 
 template<class Real>
-void Hit<Real>::SetPos(Real* pos)
+void Hit<Real>::SetPos(const Real* pos)
 {   
     point[0] = pos[0];
     point[1] = pos[1];
@@ -41,7 +43,7 @@ void Hit<Real>::SetPos(Real* pos)
 }
 
 template<class Real>
-void Hit<Real>::SetNg(Real* n)
+void Hit<Real>::SetNg(const Real* n)
 {
     normal[0] = n[0];
     normal[1] = n[1];
@@ -49,7 +51,7 @@ void Hit<Real>::SetNg(Real* n)
 }
 
 template<class Real>
-void Hit<Real>::SetID(int num)
+void Hit<Real>::SetID(const int num)
 {
     geomID = num;
 }
@@ -59,7 +61,7 @@ template class Hit<double>;
 
 //Ray class implementation
 template<class Real>
-Ray<Real>::Ray(Real* _origin, Real* _dir)
+Ray<Real>::Ray(const Real* _origin,const Real* _dir)
 {
     origin[0] = _origin[0];
     origin[1] = _origin[1];
@@ -71,7 +73,7 @@ Ray<Real>::Ray(Real* _origin, Real* _dir)
 }
 
 template<class Real>
-void Ray<Real>::SetDir(Real* _dir)
+void Ray<Real>::SetDir(const Real* _dir)
 {
     dir[0] = _dir[0];
     dir[1] = _dir[1];
@@ -79,7 +81,7 @@ void Ray<Real>::SetDir(Real* _dir)
 }
 
 template<class Real>
-void Ray<Real>::SetOrigin(Real* _origin)
+void Ray<Real>::SetOrigin(const Real* _origin)
 {
     origin[0] = _origin[0];
     origin[1] = _origin[1];
@@ -114,7 +116,7 @@ enum class LR
 
 //AABB class implementation
 template<class Real>
-AABB<Real>::AABB(Real* _max, Real* _min)
+AABB<Real>::AABB(const Real* _max, const Real* _min)
 {
     max[0] = _max[0];
     max[1] = _max[1];
@@ -130,7 +132,7 @@ AABB<Real>::AABB()
 {}
 
 template<class Real>
-void AABB<Real>::Setter(Real* _max, Real* _min)
+void AABB<Real>::Setter(const Real* _max, const Real* _min)
 {
     max[0] = _max[0];
     max[1] = _max[1];
@@ -162,7 +164,7 @@ bool AABB<Real>::intersect(Ray<Real>& ray) const {
 }
 
 template<class Real>
-AABB<Real> AABB<Real>::Union(const AABB& r)
+AABB<Real> AABB<Real>::Union(const AABB& r) const
 {
     AABB result;
 
@@ -170,12 +172,11 @@ AABB<Real> AABB<Real>::Union(const AABB& r)
         result.max[i] =  std::max(max[i], r.max[i]);
         result.min[i] =  std::min(min[i], r.min[i]);
     }
-
     return result;
 }
 
 template<class Real>
-AABB<Real> AABB<Real>::Union(const Real a[3])
+AABB<Real> AABB<Real>::Union(const Real a[3]) const
 {
     AABB result;
 
@@ -187,19 +188,19 @@ AABB<Real> AABB<Real>::Union(const Real a[3])
 }
 
 template<class Real>
-Real AABB<Real>::GetMax(Axis axis)
+Real AABB<Real>::GetMax(const Axis axis) const
 {
     return max[static_cast<int>(axis)];
 }
 
 template<class Real>
-Real AABB<Real>::GetMin(Axis axis)
-{
+Real AABB<Real>::GetMin(const Axis axis) const
+{ 
     return min[static_cast<int>(axis)];
 }
 
 template<class Real>
-Real AABB<Real>::AreaAABB()
+Real AABB<Real>::AreaAABB() const
 {
     Real result;
     result = 2*((max[0] - min[0])*(max[1] - min[1]))
@@ -214,7 +215,7 @@ template class AABB<double>;
 //BinaryBVH`s Node implementation
 
 template<class Real>
-void BBVHNode<Real>::SetSplitDimention(Axis axis)
+void BBVHNode<Real>::SetSplitDimention(const Axis axis)
 {
     switch (axis)
     {
@@ -238,7 +239,7 @@ void BBVHNode<Real>::SetSplitDimention(Axis axis)
 }
 
 template<class Real>
-void BBVHNode<Real>::SetChildIndex(LR lr, int index)
+void BBVHNode<Real>::SetChildIndex(const LR lr, const int index)
 {
     switch (lr)
     {
@@ -256,7 +257,7 @@ void BBVHNode<Real>::SetChildIndex(LR lr, int index)
 }
 
 template<class Real>
-void BBVHNode<Real>::SetLeafNode(int range[3])
+void BBVHNode<Real>::SetLeafNode(const int* range)
 {
     childinfo_left = range[0];
     childinfo_right = range[1];
@@ -269,31 +270,31 @@ void BBVHNode<Real>::SetAABB(const AABB<Real>& _aabb)
 }
 
 template<class Real>
-AABB<Real> BBVHNode<Real>::GetAABB()
+AABB<Real> BBVHNode<Real>::GetAABB() const
 {
     return aabb;
 }
 
 template<class Real>
-int BBVHNode<Real>::GetBegin()
+int BBVHNode<Real>::GetBegin() const
 {
     return childinfo_left;
 }
 
 template<class Real>
-int BBVHNode<Real>::GetEnd()
+int BBVHNode<Real>::GetEnd() const
 {
     return childinfo_right;
 }
 
 template<class Real>
-bool BBVHNode<Real>::isLeaf()
+bool BBVHNode<Real>::isLeaf() const
 {
     return !(childinfo_left & (1 << 31));
 }
 
 template<class Real>
-int BBVHNode<Real>::GetChild(LR lr)
+int BBVHNode<Real>::GetChild(const LR lr)
 {
     switch(lr)
     {
@@ -315,13 +316,8 @@ template class BBVHNode<double>;
 
 
 //BinaryBVH implementation
-enum class Evaluator
-{
-    SAH
-};
-
 template<class Real, class ShapeData>
-BinaryBVH<Real, ShapeData>::BinaryBVH(const ShapeData& _shapedata, int face_num)
+BinaryBVH<Real, ShapeData>::BinaryBVH(const ShapeData& _shapedata, const int face_num)
 {
     faces = std::vector<int>(face_num);
     for(int i = 0; i < face_num; ++i)
@@ -349,7 +345,7 @@ template class BucketInfo<float>;
 template class BucketInfo<double>;
 
 template<class Real, class ShapeData>
-int BinaryBVH<Real, ShapeData>::PartitionSAH(int range[3], AABB<Real>& bigaabb)
+int BinaryBVH<Real, ShapeData>::PartitionSAH(const int* range, const AABB<Real>& bigaabb)
 {
     if(range[1] - range[0] == 1)
     {
@@ -364,7 +360,9 @@ int BinaryBVH<Real, ShapeData>::PartitionSAH(int range[3], AABB<Real>& bigaabb)
             Real centroid[3];
             for(int j = 0; j < 3; ++j)
             {
-                centroid[j] = aabbs[faces[i]].GetMax(static_cast<Axis>(j));
+                centroid[j] =( aabbs[faces[i]].GetMax(static_cast<Axis>(j))
+                              +aabbs[faces[i]].GetMin(static_cast<Axis>(j))
+                             ) * 0.5;
             }
             centoroidAABB = centoroidAABB.Union(centroid);
         }
@@ -412,7 +410,6 @@ int BinaryBVH<Real, ShapeData>::PartitionSAH(int range[3], AABB<Real>& bigaabb)
                             / (centoroidAABB.GetMax(static_cast<Axis>(dim)) - centoroidAABB.GetMin(static_cast<Axis>(dim)));
                     if(b == nBuckets) b = nBuckets - 1;
                     buckets[b].count++;
-                    // buckets[b].aabb.SetAABB((buckets[b].aabb.GetAABB()).Union(aabbs[faces[i]]));
                     buckets[b].aabb = (buckets[b].aabb).Union(aabbs[faces[i]]);
                 }
 
@@ -423,12 +420,12 @@ int BinaryBVH<Real, ShapeData>::PartitionSAH(int range[3], AABB<Real>& bigaabb)
                     int count0 = 0, count1 = 0;
                     for(int j = 0; j <= i; j++)
                     {
-                        b0.Union(buckets[j].aabb);
+                        b0 = b0.Union(buckets[j].aabb);
                         count0 += buckets[j].count;
                     }
                     for(int j = i+1; j < nBuckets; j++)
                     {
-                        b1.Union(buckets[j].aabb);
+                        b1 = b1.Union(buckets[j].aabb);
                         count1 += buckets[j].count;
                     }
                     cost[i]= 0.125 + (count0 * b0.AreaAABB() + 
@@ -455,7 +452,7 @@ int BinaryBVH<Real, ShapeData>::PartitionSAH(int range[3], AABB<Real>& bigaabb)
                                             [&](const int geomID)
                                             {
                                                 int b = nBuckets * 
-                                                        ((aabbs[faces[geomID]].GetMax(static_cast<Axis>(dim)) + aabbs[faces[geomID]].GetMin(static_cast<Axis>(dim))) * 0.5 + centoroidAABB.GetMin(static_cast<Axis>(dim)))
+                                                        ((aabbs[faces[geomID]].GetMax(static_cast<Axis>(dim)) + aabbs[faces[geomID]].GetMin(static_cast<Axis>(dim))) * 0.5 - centoroidAABB.GetMin(static_cast<Axis>(dim)))
                                                         / (centoroidAABB.GetMax(static_cast<Axis>(dim)) - centoroidAABB.GetMin(static_cast<Axis>(dim)));
                                                 if(b == nBuckets) b = nBuckets - 1;
                                                 return b <= minCostSplitBucket;
@@ -476,7 +473,7 @@ int BinaryBVH<Real, ShapeData>::PartitionSAH(int range[3], AABB<Real>& bigaabb)
 };
 
 template<class Real, class ShapeData>
-void BinaryBVH<Real, ShapeData>::BuildBVH(Evaluator eval)
+void BinaryBVH<Real, ShapeData>::BuildBVH(const Evaluator eval)
 {
     int nodecount = 0;
     int Range[1024*3];
@@ -493,7 +490,7 @@ void BinaryBVH<Real, ShapeData>::BuildBVH(Evaluator eval)
         {//fetch task
             if(remaintasks == 0)
             {
-                return;
+                break;
             }
             --remaintasks;
             mytask[0] = Range[remaintasks*3 + 0];
@@ -525,10 +522,14 @@ void BinaryBVH<Real, ShapeData>::BuildBVH(Evaluator eval)
             }
         }
     }
+    std::cout << "remmainthreads: " << remaintasks << std::endl;
+    std::cout << "nodecount: " << nodecount << std::endl;
+    std::cout << "root node's left child: " << std::bitset<32>(bvh_nodes[0].GetChild(LR::Left))<< std::endl;
+    std::cout << "root node's right child: " << std::bitset<32>(bvh_nodes[0].GetChild(LR::Right))<< std::endl;
 }
 
 template<class Real, class ShapeData>
-bool BinaryBVH<Real, ShapeData>::Traverse(Hit<Real>& hit, Ray<Real>& ray, int index)
+bool BinaryBVH<Real, ShapeData>::Traverse(Hit<Real>& hit, Ray<Real>& ray, const int index) const
 {
     bool is_hit_aabb = (bvh_nodes[index].GetAABB()).intersect(ray);
 
@@ -574,7 +575,7 @@ template<class Real>
 SphereData<Real>::SphereData(){}
 
 template<class Real>
-bool SphereData<Real>::intersect(int geomID, Ray<Real>& ray, Hit<Real>& hit) //reference from smallpt
+bool SphereData<Real>::intersect(const int geomID, Ray<Real>& ray, Hit<Real>& hit) const//reference from smallpt
 {
     Real radius   = rad_cents[4 * geomID + 0];
     Real center_x = rad_cents[4 * geomID + 1];
@@ -612,7 +613,7 @@ bool SphereData<Real>::intersect(int geomID, Ray<Real>& ray, Hit<Real>& hit) //r
 }
 
 template<class Real>
-void SphereData<Real>::makeAABB(int geomID, AABB<Real>& aabb)
+void SphereData<Real>::makeAABB(const int geomID, AABB<Real>& aabb) const
 {
     Real radius   = rad_cents[4 * geomID + 0];
     Real center_x = rad_cents[4 * geomID + 1];
