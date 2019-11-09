@@ -24,20 +24,6 @@ private:
     Real t;
 };
 
-template<class Real>
-class Ray
-{
-public:
-    Ray(const Real* _origin,const Real* _dir);
-    void SetDir(const Real* _dir);
-    void SetOrigin(const Real* _origin);
-    Real* GetDir();
-    Real* GetOrigin();
-private:
-    Real origin[3];
-    Real dir[3];
-};
-
 enum class Axis;
 enum class LR;
 
@@ -48,7 +34,7 @@ public:
     AABB(const Real* max,const Real* min);
     AABB();
     void Setter(const Real* max, const Real* min);
-    bool intersect(Ray<Real>& ray) const;
+    bool intersect(const Real* ray_origin, const Real* ray_dir) const;
     AABB Union(const AABB& r) const;
     AABB Union(const Real a[3]) const;
     Real GetMax(const Axis axis) const;
@@ -100,7 +86,7 @@ public:
     BinaryBVH(const ShapeData& shapedata, const int face_num);
     int PartitionSAH(const int* range, const AABB<Real>& bigaabb);
     void BuildBVH(const Evaluator split_way);
-    bool Traverse(Hit<Real>& hit, Ray<Real>& ray, const int index) const;
+    bool Traverse(Hit<Real>& hit, const Real* ray_origin, const Real* ray_dir, const int index) const;
 private:
     ShapeData shapedata;
     std::unique_ptr<BBVHNode<Real>[]> bvh_nodes;
@@ -128,7 +114,7 @@ class SphereData
 public:
     SphereData();
     SphereData(Real* rad_cents);
-    bool intersect(const int geomID, Ray<Real>& ray, Hit<Real>& hit) const;
+    bool intersect(const int geomID, const Real* ray_origin , const Real* ray_dir, Hit<Real>& hit) const;
     void makeAABB(const int geomID, AABB<Real>& aabb) const;
 private:
     Real* rad_cents;

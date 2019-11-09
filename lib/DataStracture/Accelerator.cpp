@@ -59,47 +59,6 @@ void Hit<Real>::SetID(const int num)
 template class Hit<float>;
 template class Hit<double>;
 
-//Ray class implementation
-template<class Real>
-Ray<Real>::Ray(const Real* _origin,const Real* _dir)
-{
-    origin[0] = _origin[0];
-    origin[1] = _origin[1];
-    origin[2] = _origin[2];
-
-    dir[0] = _dir[0];
-    dir[1] = _dir[1];
-    dir[2] = _dir[2];
-}
-
-template<class Real>
-void Ray<Real>::SetDir(const Real* _dir)
-{
-    dir[0] = _dir[0];
-    dir[1] = _dir[1];
-    dir[2] = _dir[2];
-}
-
-template<class Real>
-void Ray<Real>::SetOrigin(const Real* _origin)
-{
-    origin[0] = _origin[0];
-    origin[1] = _origin[1];
-    origin[2] = _origin[2];
-}
-
-template<class Real>
-Real* Ray<Real>::GetDir()
-{
-    return dir;
-}
-
-template<class Real>
-Real* Ray<Real>::GetOrigin()
-{
-    return origin;
-}
-
 //utility enum
 enum class Axis
 {
@@ -144,13 +103,13 @@ void AABB<Real>::Setter(const Real* _max, const Real* _min)
 }
 
 template<class Real>
-bool AABB<Real>::intersect(Ray<Real>& ray) const {
+bool AABB<Real>::intersect(const Real* ray_origin, const Real* ray_dir) const {
     Real t_max = std::numeric_limits<Real>::max();
     Real t_min = std::numeric_limits<Real>::lowest();
 
     for(int i = 0; i < 3; ++i) {
-        Real t1 = (min[i] - (ray.GetOrigin())[i])/(ray.GetDir())[i];
-        Real t2 = (max[i] - (ray.GetOrigin())[i])/(ray.GetDir())[i];
+        Real t1 = (min[i] - ray_origin[i]) / ray_dir[i];
+        Real t2 = (max[i] - ray_origin[i]) / ray_dir[i];
         
         Real t_near = std::min(t1, t2);
         Real t_far = std::max(t1, t2);
@@ -529,9 +488,9 @@ void BinaryBVH<Real, ShapeData>::BuildBVH(const Evaluator eval)
 }
 
 template<class Real, class ShapeData>
-bool BinaryBVH<Real, ShapeData>::Traverse(Hit<Real>& hit, Ray<Real>& ray, const int index) const
+bool BinaryBVH<Real, ShapeData>::Traverse(Hit<Real>& hit, const Real* ray_origin, const Real* ray_dir, const int index) const
 {
-    bool is_hit_aabb = (bvh_nodes[index].GetAABB()).intersect(ray);
+    bool is_hit_aabb = (bvh_nodes[index].GetAABB()).intersect(ray_origin, ray_dir);
 
     if(!is_hit_aabb){
         return false;
@@ -544,7 +503,7 @@ bool BinaryBVH<Real, ShapeData>::Traverse(Hit<Real>& hit, Ray<Real>& ray, const 
             bool is_hit = false;
             for(int i = bvh_nodes[index].GetBegin(); i < bvh_nodes[index].GetEnd(); ++i)
             {
-                if(shapedata.intersect(faces[i], ray, hit_each))
+                if(shapedata.intersect(faces[i], ray_origin, ray_dir, hit_each))
                 {
                     if(hit_each.GetT() < hit.GetT())
                     {
@@ -557,8 +516,8 @@ bool BinaryBVH<Real, ShapeData>::Traverse(Hit<Real>& hit, Ray<Real>& ray, const 
         }
         else
         {
-            bool is_hit1 = Traverse(hit, ray, bvh_nodes[index].GetChild(LR::Left));
-            bool is_hit2 = Traverse(hit, ray, bvh_nodes[index].GetChild(LR::Right));
+            bool is_hit1 = Traverse(hit, ray_origin, ray_dir, bvh_nodes[index].GetChild(LR::Left));
+            bool is_hit2 = Traverse(hit, ray_origin, ray_dir, bvh_nodes[index].GetChild(LR::Right));
             return is_hit1 || is_hit2;
         }
         
@@ -575,15 +534,13 @@ template<class Real>
 SphereData<Real>::SphereData(){}
 
 template<class Real>
-bool SphereData<Real>::intersect(const int geomID, Ray<Real>& ray, Hit<Real>& hit) const//reference from smallpt
+bool SphereData<Real>::intersect(const int geomID, const Real* ray_origin, const Real* ray_dir, Hit<Real>& hit) const//reference from smallpt
 {
     Real radius   = rad_cents[4 * geomID + 0];
     Real center_x = rad_cents[4 * geomID + 1];
     Real center_y = rad_cents[4 * geomID + 2];
     Real center_z = rad_cents[4 * geomID + 3];
 
-    Real* ray_dir = ray.GetDir();
-    Real* ray_origin = ray.GetOrigin();
 
     Real op[3] = {center_x - ray_origin[0],
                   center_y - ray_origin[1],
