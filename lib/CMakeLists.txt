@@ -1,4 +1,5 @@
 add_subdirectory(DataStracture)
 add_subdirectory(Math)
 add_subdirectory(Camera)
-add_subdirectory(random)
+add_subdirectory(RNG)
+add_subdirectory(Parallel)
