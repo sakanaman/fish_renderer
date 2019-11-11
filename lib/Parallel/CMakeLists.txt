@@ -1,1 +1,1 @@
-add_library(Parallel coucurrent.cpp)
+add_library(Parallel concurrent.cpp)

@@ -1,6 +1,6 @@
 #include "concurrent.hpp"
 
-ParallelRender::ParallelRender(const std::function<void(int*, int*)>& _render):render(_render), count(0){}
+ParallelRender::ParallelRender(const std::function<void(int*, int*)>& _render):count(0),render(_render){}
 
 
 void ParallelRender::Execute(const int width, const int height, const int split_num)
@@ -24,23 +24,22 @@ void ParallelRender::Execute(const int width, const int height, const int split_
     auto renderthread = 
         [&]()
         {
-            int upper_left[2] = {-1.0, -1.0};
-            int bottom_right[2] = {-1.0, -1.0};
+            int upper_left[2] = {-1, -1};
+            int bottom_right[2] = {-1, -1};
 
             while(1)
             {
-                {
+                { // task allocating must be locked !!
                     std::lock_guard<std::mutex> lg(mut);
                     if(count < split_num * split_num)
                     {
-                        ++count;
                         int i = ((count % split_num) + split_num - 1) % split_num;
                         int j = count / split_num;
                         upper_left[0] = w[i];
                         upper_left[1] = h[j];
                         bottom_right[0] = w[i + 1];
                         bottom_right[1] = h[j + 1];
-
+                        ++count;
                     }
                     else
                     {
