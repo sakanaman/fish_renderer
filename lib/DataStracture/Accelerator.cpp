@@ -5,6 +5,13 @@
 
 //Hit class implementation
 template<class Real>
+Hit<Real>::Hit()
+{
+    t = 1000000;
+}
+
+
+template<class Real>
 Real Hit<Real>::GetT() const
 {
     return t;
@@ -306,6 +313,7 @@ template class BucketInfo<double>;
 template<class Real, class ShapeData>
 int BinaryBVH<Real, ShapeData>::PartitionSAH(const int* range, const AABB<Real>& bigaabb)
 {
+    //std::cout << "this task:  [" << range[0] << ", " << range[1] << ")" << std::endl;
     if(range[1] - range[0] == 1)
     {
         bvh_nodes[range[2]].SetLeafNode(range);
@@ -411,7 +419,7 @@ int BinaryBVH<Real, ShapeData>::PartitionSAH(const int* range, const AABB<Real>&
                                             [&](const int geomID)
                                             {
                                                 int b = nBuckets * 
-                                                        ((aabbs[faces[geomID]].GetMax(static_cast<Axis>(dim)) + aabbs[faces[geomID]].GetMin(static_cast<Axis>(dim))) * 0.5 - centoroidAABB.GetMin(static_cast<Axis>(dim)))
+                                                        ((aabbs[geomID].GetMax(static_cast<Axis>(dim)) + aabbs[geomID].GetMin(static_cast<Axis>(dim))) * 0.5 - centoroidAABB.GetMin(static_cast<Axis>(dim)))
                                                         / (centoroidAABB.GetMax(static_cast<Axis>(dim)) - centoroidAABB.GetMin(static_cast<Axis>(dim)));
                                                 if(b == nBuckets) b = nBuckets - 1;
                                                 return b <= minCostSplitBucket;
@@ -444,6 +452,7 @@ void BinaryBVH<Real, ShapeData>::BuildBVH(const Evaluator eval)
     Range[2] = 0;
 
     int mytask[3];
+    std::cout << faces.size() << std::endl;
     while(1) 
     {
         {//fetch task
@@ -467,6 +476,7 @@ void BinaryBVH<Real, ShapeData>::BuildBVH(const Evaluator eval)
         {
             if(bestsplit != -1)
             {
+                //std::cout << bestsplit << std::endl;
                 Range[remaintasks*3 + 0] = mytask[0];
                 Range[remaintasks*3 + 1] = bestsplit;
                 Range[remaintasks*3 + 2] = nodecount + 1;
@@ -478,6 +488,10 @@ void BinaryBVH<Real, ShapeData>::BuildBVH(const Evaluator eval)
                 bvh_nodes[mytask[2]].SetChildIndex(LR::Right, nodecount + 2);
                 remaintasks += 2;
                 nodecount += 2;
+            }
+            else
+            {
+                //std::cout << "non split" << std::endl;
             }
         }
     }
@@ -491,7 +505,6 @@ template<class Real, class ShapeData>
 bool BinaryBVH<Real, ShapeData>::Traverse(Hit<Real>& hit, const Real* ray_origin, const Real* ray_dir, const int index) const
 {
     bool is_hit_aabb = (bvh_nodes[index].GetAABB()).intersect(ray_origin, ray_dir);
-
     if(!is_hit_aabb){
         return false;
     }
@@ -522,6 +535,21 @@ bool BinaryBVH<Real, ShapeData>::Traverse(Hit<Real>& hit, const Real* ray_origin
         }
         
     }
+
+    // Hit<Real> hit_each;
+    // bool is_hit = false;
+    // for(int i = 0; i < faces.size(); ++i)
+    // {
+    //     if(shapedata.intersect(faces[i], ray_origin, ray_dir, hit_each))
+    //     {
+    //         if(hit_each.GetT() < hit.GetT())
+    //         {
+    //             hit = hit_each;
+    //         }
+    //         is_hit = true;
+    //     }
+    // }
+    // return is_hit;
     
 }
 
@@ -541,31 +569,40 @@ bool SphereData<Real>::intersect(const int geomID, const Real* ray_origin, const
     Real center_y = rad_cents[4 * geomID + 2];
     Real center_z = rad_cents[4 * geomID + 3];
 
+    Real d_norm = std::sqrt(ray_dir[0]*ray_dir[0] + ray_dir[1]*ray_dir[1] + ray_dir[2]*ray_dir[2]);
+    Real oc_norm = std::sqrt( (ray_origin[0] - center_x) * (ray_origin[0] - center_x) 
+                            + (ray_origin[1] - center_y) * (ray_origin[1] - center_y)
+                            + (ray_origin[2] - center_z) * (ray_origin[2] - center_z));
+    Real a = d_norm * d_norm;
+    Real b = 2 * ( ray_dir[0] * (ray_origin[0] - center_x)
+                 + ray_dir[1] * (ray_origin[1] - center_y)
+                 + ray_dir[2] * (ray_origin[2] - center_z));
+    Real c =  oc_norm * oc_norm - radius * radius;
+    Real d = b*b - 4*a*c;
 
-    Real op[3] = {center_x - ray_origin[0],
-                  center_y - ray_origin[1],
-                  center_z - ray_origin[2]};
+    if (d < 0)
+    {
+        return false;
+    }
+     
 
-    Real t, eps = 1e-4;
-    Real b = op[0] * ray_dir[0]
-            +op[1] * ray_dir[1]
-            +op[2] * ray_dir[2];
-    
-    Real det = b * b - (  op[0] * op[0] 
-                        + op[1] * op[1]
-                        + op[2] * op[2]) + radius * radius;
-    if(det < 0) return false;
-    else det = std::sqrt(det);
-    Real hit_distance = (t = b - det)>eps ? t : ((t = b + det)>eps ? t : 0.0);
-    if(hit_distance == 0.0) return false;
-    Real hitpos[3] = {hit_distance * ray_dir[0] + ray_origin[0],
-                      hit_distance * ray_dir[1] + ray_origin[1],
-                      hit_distance * ray_dir[2] + ray_origin[2]};
-    hit.SetPos(hitpos);
-    Real hitnormal[3] = {(hitpos[0] - center_x)/radius, (hitpos[1] - center_y)/radius, (hitpos[2] - center_z)/radius}; 
-    hit.SetNg(hitnormal);
-    hit.SetID(geomID);
-    hit.SetT(hit_distance);
+    Real t1 = (-b - sqrt(d)) / (2 * a);
+    Real t2 = (-b + sqrt(d)) / (2 * a);
+
+    Real t = t1;
+    if (t <= 1e-6)
+    {
+        t = t2;
+        if (t <= 1e-6)
+        {
+            return false;
+        }
+    }
+    hit.SetT(t);
+    Real hitPos[3] = {ray_origin[0] + t * ray_dir[0], ray_origin[1] + t * ray_dir[1], ray_origin[2] + t * ray_dir[2]};
+    hit.SetPos(hitPos);
+    Real hitNormal[3] = {hitPos[0] - center_x, hitPos[1] - center_y, hitPos[2] - center_z};
+    hit.SetNg(hitNormal);
     return true;
 }
 

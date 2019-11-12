@@ -2,3 +2,5 @@
 build/
 test/
 *.json
+.DS_Store
+*.png

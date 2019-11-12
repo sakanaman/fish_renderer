@@ -1,13 +1,13 @@
 #include "camera.hpp"
 #include <cmath>
-
+#include <iostream>
 //utility functions
 template<class Real>
 void cross(Real* cross, const Real* v, const Real* w)
 {
-    cross[0] = v[0] * w[1] - v[1] * w[0];
-    cross[1] = v[1] * w[2] - v[2] * w[1];
-    cross[2] = v[2] * w[0] - v[0] * w[2];
+    cross[0] = v[1] * w[2] - v[2] * w[1];
+    cross[1] = v[2] * w[0] - v[0] * w[2];
+    cross[2] = v[0] * w[1] - v[1] * w[0];
 }
 
 template<class Real>
@@ -29,7 +29,7 @@ template<class Real>
 void CreateRightVec(const Real* camforward, Real* result){
     Real tmp[3];
     Real base[] = {0.0, 1.0, 0.0};
-    cross(tmp, camforward, base);
+    cross(tmp, base, camforward);
     normalize(tmp, result);
     
     result[0] = -1 * result[0];
@@ -60,9 +60,9 @@ template<class Real>
 void PinholeCamera<Real>::CreateFirstRay(const Real u, const Real v, Real* ray_origin, Real* ray_dir) const
 {
     Real sensorPos[3];
-    sensorPos[0] = camPos[0] - u * camRight[0] + v * camUp[0];
-    sensorPos[1] = camPos[1] - u * camRight[1] + v * camUp[1];
-    sensorPos[2] = camPos[2] - u * camRight[2] + v * camUp[2];
+    sensorPos[0] = camPos[0] + u * camRight[0] - v * camUp[0];
+    sensorPos[1] = camPos[1] + u * camRight[1] - v * camUp[1];
+    sensorPos[2] = camPos[2] + u * camRight[2] - v * camUp[2];
     
     Real Pinhole[3];
     Pinhole[0] = camPos[0] + camForward[0];
@@ -73,9 +73,15 @@ void PinholeCamera<Real>::CreateFirstRay(const Real u, const Real v, Real* ray_o
     ray_origin[1] = sensorPos[1];
     ray_origin[2] = sensorPos[2];
 
-    ray_dir[0] = Pinhole[0] - sensorPos[0];
-    ray_dir[1] = Pinhole[1] - sensorPos[1];
-    ray_dir[2] = Pinhole[2] - sensorPos[2];
+    // ray_dir[0] = Pinhole[0] - sensorPos[0];
+    // ray_dir[1] = Pinhole[1] - sensorPos[1];
+    // ray_dir[2] = Pinhole[2] - sensorPos[2];
+
+    Real result[3];
+    result[0] = Pinhole[0] - sensorPos[0];
+    result[1] = Pinhole[1] - sensorPos[1];
+    result[2] = Pinhole[2] - sensorPos[2];
+    normalize(result, ray_dir);
 }
 
 

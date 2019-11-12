@@ -9,6 +9,7 @@ template<class Real>
 class Hit
 {
 public:
+    Hit();
     Real* GetPos();
     Real* GetNg();
     Real GetT() const;
