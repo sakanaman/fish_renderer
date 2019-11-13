@@ -97,17 +97,18 @@ private:
 
 //shapedata
 
-// template<class Real>
-// class TriangleData
-// {
-// public:
-//     TriangleData(Real* vertices, Real* indices);
-//     bool intersect(int geomID, const Ray<Real>& ray, Hit<Real>& hit);
-//     void makeAABB(int geomID, AABB<Real>& aabb);
-// private:
-//     Real* vertices;
-//     Real* indices;
-// };
+template<class Real>
+class TriangleData
+{
+public:
+    TriangleData();
+    TriangleData(Real* vertices, int* indices);
+    bool intersect(const int geomID, const Real* ray_origin, const Real* ray_dir, Hit<Real>& hit) const;
+    void makeAABB(const int geomID, AABB<Real>& aabb) const;
+private:
+    Real* vertices;
+    int* indices;
+};
 
 template<class Real>
 class SphereData

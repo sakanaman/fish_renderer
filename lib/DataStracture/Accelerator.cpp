@@ -452,7 +452,7 @@ void BinaryBVH<Real, ShapeData>::BuildBVH(const Evaluator eval)
     Range[2] = 0;
 
     int mytask[3];
-    std::cout << faces.size() << std::endl;
+
     while(1) 
     {
         {//fetch task
@@ -569,7 +569,9 @@ bool SphereData<Real>::intersect(const int geomID, const Real* ray_origin, const
     Real center_y = rad_cents[4 * geomID + 2];
     Real center_z = rad_cents[4 * geomID + 3];
 
-    Real d_norm = std::sqrt(ray_dir[0]*ray_dir[0] + ray_dir[1]*ray_dir[1] + ray_dir[2]*ray_dir[2]);
+    Real d_norm = std::sqrt(ray_dir[0]*ray_dir[0] 
+                          + ray_dir[1]*ray_dir[1] 
+                          + ray_dir[2]*ray_dir[2]);
     Real oc_norm = std::sqrt( (ray_origin[0] - center_x) * (ray_origin[0] - center_x) 
                             + (ray_origin[1] - center_y) * (ray_origin[1] - center_y)
                             + (ray_origin[2] - center_z) * (ray_origin[2] - center_z));
@@ -599,10 +601,21 @@ bool SphereData<Real>::intersect(const int geomID, const Real* ray_origin, const
         }
     }
     hit.SetT(t);
-    Real hitPos[3] = {ray_origin[0] + t * ray_dir[0], ray_origin[1] + t * ray_dir[1], ray_origin[2] + t * ray_dir[2]};
+    Real hitPos[3] = {ray_origin[0] + t * ray_dir[0], 
+                      ray_origin[1] + t * ray_dir[1], 
+                      ray_origin[2] + t * ray_dir[2]};
     hit.SetPos(hitPos);
-    Real hitNormal[3] = {hitPos[0] - center_x, hitPos[1] - center_y, hitPos[2] - center_z};
+    Real hitNormal[3] = {hitPos[0] - center_x, 
+                         hitPos[1] - center_y, 
+                         hitPos[2] - center_z};
+    Real normal_len = std::sqrt( hitNormal[0] * hitNormal[0]+
+                                 hitNormal[1] * hitNormal[1]+
+                                 hitNormal[2] * hitNormal[2]);
+    hitNormal[0] /= normal_len;
+    hitNormal[1] /= normal_len;
+    hitNormal[2] /= normal_len;
     hit.SetNg(hitNormal);
+    hit.SetID(geomID);
     return true;
 }
 
@@ -619,7 +632,142 @@ void SphereData<Real>::makeAABB(const int geomID, AABB<Real>& aabb) const
     aabb.Setter(max, min);
 }
 
+template<class Real>
+TriangleData<Real>::TriangleData(Real* _vertices, int* _indices)
+                                :vertices(_vertices), indices(_indices){}
+
+template<class Real>
+TriangleData<Real>::TriangleData(){};
+
+
+template<class Real>
+bool TriangleData<Real>::intersect(const int geomID, const Real* ray_origin , const Real* ray_dir, Hit<Real>& hit) const
+{
+    Real v0[3], v1[3], v2[3];
+
+    int index[3] = {indices[3 * geomID + 0], 
+                    indices[3 * geomID + 1],
+                    indices[3 * geomID + 2]};
+
+    v0[0] = vertices[3 * index[0] + 0];
+    v0[1] = vertices[3 * index[0] + 1];
+    v0[2] = vertices[3 * index[0] + 2];
+
+    v1[0] = vertices[3 * index[1] + 0];
+    v1[1] = vertices[3 * index[1] + 1];
+    v1[2] = vertices[3 * index[1] + 2];
+
+    v2[0] = vertices[3 * index[2] + 0];
+    v2[1] = vertices[3 * index[2] + 1];
+    v2[2] = vertices[3 * index[2] + 2];
+
+    Real e1[3] = {v1[0] - v0[0],
+                   v1[1] - v0[1],
+                   v1[2] - v0[2]};
+    Real e2[3] = {v2[0] - v0[0],
+                   v2[1] - v0[1],
+                   v2[2] - v0[2]};
+    Real d[3] = {ray_dir[0], 
+                  ray_dir[1], 
+                  ray_dir[2]};
+    
+    Real r[3] = {ray_origin[0] - v0[0],
+                  ray_origin[1] - v0[1],
+                  ray_origin[2] - v0[2]};
+
+    Real alpha[3] = {d[1] * e2[2] - d[2] * e2[1],
+                      d[2] * e2[0] - d[0] * e2[2],
+                      d[0] * e2[1] - d[1] * e2[0]};
+    Real beta[3] =  {r[1] * e1[2] - r[2] * e1[1],
+                      r[2] * e1[0] - r[0] * e1[2],
+                      r[0] * e1[1] - r[1] * e1[0]};
+    Real denominator = alpha[0] * e1[0] + 
+                        alpha[1] * e1[1] + 
+                        alpha[2] * e1[2];
+
+    if(std::abs(denominator) < 1e-7)
+    {
+        return false;
+    }
+    else
+    {
+        Real _t = 1.0f/denominator * (beta[0] * e2[0] + 
+                                       beta[1] * e2[1] + 
+                                       beta[2] * e2[2]);
+        Real x = 1.0f/denominator * (alpha[0] * r[0] + 
+                                      alpha[1] * r[1] + 
+                                      alpha[2] * r[2]);
+        Real y = 1.0f/denominator * (beta[0] * d[0] + 
+                                      beta[1] * d[1] + 
+                                      beta[2] * d[2]);
+
+        if(_t > 1e-6 && 0 <= x && x <= 1 && 0 <= y && y <= 1 && 0 <= x + y && x + y <= 1)
+        {
+            hit.SetT(_t);
+            hit.SetID(geomID);
+
+            Real hitNormal[3] = {e2[1]*e1[2] - e2[2]*e1[1],
+                                  e2[2]*e1[0] - e2[0]*e1[2],
+                                  e2[0]*e1[1] - e2[1]*e1[0]};
+            Real ng_len = std::sqrt(hitNormal[0] * hitNormal[0] + 
+                                     hitNormal[1] * hitNormal[1] +
+                                     hitNormal[2] * hitNormal[2]);
+            hitNormal[0] /= ng_len;
+            hitNormal[1] /= ng_len;
+            hitNormal[2] /= ng_len;
+            hit.SetNg(hitNormal);
+
+            Real hitPos[3] = {ray_origin[0] + _t * ray_dir[0],
+                               ray_origin[1] + _t * ray_dir[1],
+                               ray_origin[2] + _t * ray_dir[2]};
+            hit.SetPos(hitPos);
+            
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+}
+
+template<class Real>
+void TriangleData<Real>::makeAABB(const int geomID, AABB<Real>& aabb) const
+{
+    Real v0[3], v1[3], v2[3];
+    //std::cout << indices[3 * geomID + 0] << std::endl;
+    int index[3] = {indices[3 * geomID + 0], 
+                    indices[3 * geomID + 1],
+                    indices[3 * geomID + 2]};
+
+    v0[0] = vertices[3 * index[0] + 0];
+    v0[1] = vertices[3 * index[0] + 1];
+    v0[2] = vertices[3 * index[0] + 2];
+
+    v1[0] = vertices[3 * index[1] + 0];
+    v1[1] = vertices[3 * index[1] + 1];
+    v1[2] = vertices[3 * index[1] + 2];
+
+    v2[0] = vertices[3 * index[2] + 0];
+    v2[1] = vertices[3 * index[2] + 1];
+    v2[2] = vertices[3 * index[2] + 2];
+
+    Real maxim[3], minimum[3];
+    maxim[0] = std::max({v0[0], v1[0], v2[0]});
+    maxim[1] = std::max({v0[1], v1[1], v2[1]});
+    maxim[2] = std::max({v0[2], v1[2], v2[2]});
+    minimum[0] = std::min({v0[0], v1[0], v2[0]});
+    minimum[1] = std::min({v0[1], v1[1], v2[1]});
+    minimum[2] = std::min({v0[2], v1[2], v2[2]});
+    aabb.Setter(maxim, minimum);
+}
+
 template class SphereData<float>;
 template class SphereData<double>;
+template class TriangleData<float>;
+template class TriangleData<double>;
+
 template class BinaryBVH<float, SphereData<float>>;
 template class BinaryBVH<double, SphereData<double>>;
+template class BinaryBVH<float, TriangleData<float>>;
+template class BinaryBVH<double, TriangleData<double>>;
