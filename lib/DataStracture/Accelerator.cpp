@@ -712,9 +712,9 @@ bool TriangleData<Real>::intersect(const int geomID, const Real* ray_origin , co
             Real ng_len = std::sqrt(hitNormal[0] * hitNormal[0] + 
                                      hitNormal[1] * hitNormal[1] +
                                      hitNormal[2] * hitNormal[2]);
-            hitNormal[0] /= ng_len;
-            hitNormal[1] /= ng_len;
-            hitNormal[2] /= ng_len;
+            hitNormal[0] /= -1.0 * ng_len;
+            hitNormal[1] /= -1.0 * ng_len;
+            hitNormal[2] /= -1.0 * ng_len;
             hit.SetNg(hitNormal);
 
             Real hitPos[3] = {ray_origin[0] + _t * ray_dir[0],
