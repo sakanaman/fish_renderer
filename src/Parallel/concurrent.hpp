@@ -52,6 +52,7 @@ void ParallelRender::Execute(const int width, const int height, const int split_
 
             while(1)
             {
+                bool have_task = false;
                 { // task allocating must be locked !!
                     std::lock_guard<std::mutex> lg(mut);
                     if(count < split_num * split_num)
@@ -63,12 +64,11 @@ void ParallelRender::Execute(const int width, const int height, const int split_
                         bottom_right[0] = w[i + 1];
                         bottom_right[1] = h[j + 1];
                         ++count;
-                    }
-                    else
-                    {
-                        return;
+                        fprintf(stderr, "\r[%3d]", int(100 * count / (split_num * split_num))); 
+                        have_task = true;
                     }
                 }
+                if(!have_task) return;
 
                 render(upper_left, bottom_right, rng);
             }
