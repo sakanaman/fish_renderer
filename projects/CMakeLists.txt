@@ -1,1 +1,2 @@
 add_subdirectory(PurePathTracing)
+add_subdirectory(IMAGE_PROCESSING)
