@@ -5,7 +5,7 @@
 #include <stb_image.h>
 #include <concurrent.hpp>
 #include <Vec.hpp>
-
+#define NEE
 
 class IBL
 {
@@ -324,7 +324,18 @@ void LoadObj_Single_Object(OBJloader& loader, std::vector<float>& vertices, std:
     }
 }
 
+Vec3<float> randomCosineHemisphere(const float u, const float v, const Vec3<float> &n)
+{
+    float theta = 0.5 * std::acos(1 - 2 * u);
+    float phi = 2 * M_PI * v;
 
+    float x = std::cos(phi) * std::sin(theta);
+    float y = std::cos(theta);
+    float z = std::sin(phi) * std::sin(theta);
+    Vec3<float> xv, zv;
+    ONB(n, xv, zv);
+    return x * xv + y * n + z * zv;
+}
 
 
 class Ray
@@ -408,10 +419,7 @@ Vec3<float> Trace(const float* firstRay_dir, const float* firstRay_origin, const
             //BRDF sampling
             float u1 = rnd(rng);
             float u2 = rnd(rng);
-            float y = u1;
-            float x = std::sqrt(1 - y*y) * std::cos(2 * M_PI * u2);
-            float z = std::sqrt(1 - y*y) * std::sin(2 * M_PI * u2);
-            Vec3<float> wi = x * e0 + y * orienting_normal + z * e2;
+            Vec3<float> wi = randomCosineHemisphere(u1, u2, orienting_normal);
 
             comingRay = Ray(hitPos + 0.001f * orienting_normal, wi);
 
@@ -513,7 +521,7 @@ int main()
     float pixel_size = screen_height/height;
 
 
-    int samples = 100;
+    int samples = 10;
 
     //Rendering
     std::function<void(const int*, const int*, pcg32_random_t* rng)> render = 
