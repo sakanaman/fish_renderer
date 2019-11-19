@@ -18,11 +18,58 @@ public:
             std::cout << "load success!!" << std::endl;
         }
         std::cout << "data[0]" << data[13] << std::endl;
+
+        std::cout << "Make IBL sampler" << std::endl;
+        PVDists = std::vector<std::vector<float>>(w, std::vector<float>(h));
+        PUDists =  std::vector<float>(w);
+
+        float angles[h];
+        for(int i = 0; i < h; i++)
+        {
+            angles[i] = (2.0f * i + 1) * M_PI / (2.0f * h);
+        }
+
+        float sinthetas[h];
+        for(int i = 0; i < h; i++)
+        {
+            sinthetas[i] = std::sin(angles[i]);
+        }
+
+        for(int x = 0; x < w; ++x)
+        {
+            //y = 0
+            float r = data[3 * (w * 0 + x) + 0];
+            float g = data[3 * (w * 0 + x) + 1];
+            float b = data[3 * (w * 0 + x) + 2];
+            float L = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+            PVDists.at(x).at(0) = sinthetas[0] * L;
+
+            //y = 1, 2,...,height-1
+            for(int y = 1; y < h; ++y)
+            {
+                r = data[3 * (w * y + x) + 0];
+                g = data[3 * (w * y + x) + 1];
+                b = data[3 * (w * y + x) + 2];
+                L = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+                PVDists.at(x).at(y) = PVDists.at(x).at(y-1) + L * sinthetas[y];
+            }
+
+            if(x == 0)
+            {
+                PUDists.at(x) = PVDists.at(x).at(h - 1);
+            }
+            else
+            {
+                PUDists.at(x) = PUDists.at(x - 1) + PVDists.at(x).at(h - 1);
+            }
+        }
+        std::cout << "finish make IBL sampler" << std::endl;
     }
     void xy2uv(const int x, const int y, float* u, float* v) const 
     {
-        *u = x/w;
-        *v = y/h;
+        *u = float(x)/w;
+        *v = float(y)/h;
     }
     void uv2xy(int* x, int* y, const float u, const float v) const
     {
@@ -49,12 +96,43 @@ public:
         Le[1] = data[3 * (w * y + x) + 1];
         Le[2] = data[3 * (w * y + x) + 2];
     }
+    float sample(const float r1, const float r2, float* phi, float* theta, float* Le) const//return PDF
+    {
+        int u, v;
+
+        float maxUval = PUDists[w - 1];
+        auto pUPos = std::lower_bound(PUDists.begin(), PUDists.end(), maxUval * r1);
+        u = pUPos - PUDists.begin();
+
+        float maxVval = PVDists.at(u).at(h - 1);
+        auto pVPos = std::lower_bound(PVDists.at(u).begin(), PVDists.at(u).end(), maxVval * r2);
+        v = pVPos - PVDists.at(u).begin();
+
+        float dt = M_PI/h;
+        float invPdfNorm = 2.0f * M_PI * M_PI / (w * h);
+        float pdfU = (u == 0) ? PUDists.at(0) : PUDists.at(u) - PUDists.at(u-1);
+        pdfU /= PUDists.at(w - 1);
+        float pdfV = (v == 0) ? PVDists.at(u).at(0) : PVDists.at(u).at(v) - PVDists.at(u).at(v-1);
+        pdfV /= PVDists.at(u).at(h - 1);
+
+        Le[0] = data[3 * (w * v + u) + 0];
+        Le[1] = data[3 * (w * v + u) + 1];
+        Le[2] = data[3 * (w * v + u) + 2];
+        *theta = dt * 0.5 + dt * v;
+        *phi = float(u)/w * 2.0f * M_PI;
+        float PDF = pdfV * pdfU / (invPdfNorm * std::sin(*theta));
+        return PDF;
+    }
 private:
     std::string name;
     float* data;
     int channel;
     int w;
     int h;
+
+    //for importance sampling
+    std::vector<std::vector<float>> PVDists;
+    std::vector<float> PUDists;
 };
 
 template<class Real>
@@ -286,23 +364,64 @@ Vec3<float> Trace(const float* firstRay_dir, const float* firstRay_origin, const
             Vec3<float> n(hit.GetNg()[0], hit.GetNg()[1], hit.GetNg()[2]);
             Vec3<float> hitPos(hit.GetPos()[0], hit.GetPos()[1], hit.GetPos()[2]);
             Vec3<float> orienting_normal = n.dot(comingRay.dir) < 0 ? n : -1.0f * n;
+
+            Vec3<float> e0, e2;
+            ONB(orienting_normal, e0, e2);
+
+            //Light Sampling
+            #ifdef NEE
+            float phi, theta;
+            float Le[3] = {0.0f, 0.0f, 0.0f};
+            float r1 = rnd(rng), r2 = rnd(rng);
+            float nee_pdf = ibl.sample(r1, r2, &phi, &theta, Le);
+            
+            //std::cout << Vec3<float>(Le) << std::endl;
+            Vec3<float> shadowdir = std::sin(theta) * std::cos(phi) * Vec3<float>(1.0f, 0.0f, 0.0f)
+                                  + std::cos(theta) * Vec3<float>(0.0f, 1.0f, 0.0f)
+                                  + std::sin(theta) * std::sin(phi) * Vec3<float>(0.0f, 0.0f, 1.0f);
+            if(shadowdir.dot(orienting_normal) > 0.0f)
+            {
+                float shadowdir_ary[3] = {shadowdir[0], shadowdir[1], shadowdir[2]};
+                Vec3<float> shadoworigin  = hitPos + 0.001f * orienting_normal;
+                float shadoworigin_ary[3] = {shadoworigin[0], shadoworigin[1], shadoworigin[2]};
+                Hit<float> shadow_hit;
+                if(bvh.Traverse(shadow_hit, shadoworigin_ary, shadowdir_ary, 0))
+                {
+                    //nothing
+                }
+                else
+                {
+                    float costerm = orienting_normal.dot(shadowdir);
+                    I[0] = I[0] + throughput[0] * mat_infos.diffuses[3 * mat_infos.mat_indices[hit.GetID()] + 0] * Le[0]
+                                                * costerm
+                                                / (nee_pdf * M_PI);
+                    I[1] = I[1] + throughput[1] * mat_infos.diffuses[3 * mat_infos.mat_indices[hit.GetID()] + 1] * Le[1]
+                                                * costerm
+                                                / (nee_pdf * M_PI);
+                    I[2] = I[2] + throughput[2] * mat_infos.diffuses[3 * mat_infos.mat_indices[hit.GetID()] + 2] * Le[2]
+                                                * costerm
+                                                / (nee_pdf * M_PI);
+                }
+            }
+            #endif
+
             //BRDF sampling
             float u1 = rnd(rng);
             float u2 = rnd(rng);
             float y = u1;
             float x = std::sqrt(1 - y*y) * std::cos(2 * M_PI * u2);
             float z = std::sqrt(1 - y*y) * std::sin(2 * M_PI * u2);
-            Vec3<float> e0, e2;
-            ONB(orienting_normal, e0, e2);
             Vec3<float> wi = x * e0 + y * orienting_normal + z * e2;
 
             comingRay = Ray(hitPos + 0.001f * orienting_normal, wi);
 
+            // store throughput
             throughput[0] *= mat_infos.diffuses[3 * mat_infos.mat_indices[hit.GetID()] + 0];
             throughput[1] *= mat_infos.diffuses[3 * mat_infos.mat_indices[hit.GetID()] + 1];
             throughput[2] *= mat_infos.diffuses[3 * mat_infos.mat_indices[hit.GetID()] + 2];
 
             // float Pr = std::max({throughput[0], throughput[1], throughput[2]});
+            //russian roulette
             Pr *= 0.96;
             if(rnd(rng) < Pr)
             {
@@ -316,16 +435,32 @@ Vec3<float> Trace(const float* firstRay_dir, const float* firstRay_origin, const
         }
         else
         {
-            float phi = std::atan2(comingRay.dir[2], comingRay.dir[0]);
-            float theta = std::acos(comingRay.dir[1]);
-            if (phi < 0)
-                phi += 2 * M_PI;
-            if (phi > 2 * M_PI)
-                phi -= 2 * M_PI;
+            #ifdef NEE
+            if(depth == 0)
+            {
+                float phi = std::atan2(comingRay.dir[2], comingRay.dir[0]);
+                float theta = std::acos(comingRay.dir[1]);
+                if (phi < 0)
+                    phi += 2 * M_PI;
+                if (phi > 2 * M_PI)
+                    phi -= 2 * M_PI;
 
-            float Le[3];
-            ibl.GetLe(Le, theta, phi);
-            I = I + throughput * Vec3<float>(Le);
+                float Le[3];
+                ibl.GetLe(Le, theta, phi);
+                I = I + throughput * Vec3<float>(Le);
+            }
+            #else
+                float phi = std::atan2(comingRay.dir[2], comingRay.dir[0]);
+                float theta = std::acos(comingRay.dir[1]);
+                if (phi < 0)
+                    phi += 2 * M_PI;
+                if (phi > 2 * M_PI)
+                    phi -= 2 * M_PI;
+
+                float Le[3];
+                ibl.GetLe(Le, theta, phi);
+                I = I + throughput * Vec3<float>(Le);
+            #endif
             break;
         }   
     }
@@ -368,7 +503,7 @@ int main()
 
 
     //Screen, Image
-    int width = 1051, height = 750;
+    int width = 512, height = 512;
     float* RGB = new float[width * height * 3];
     for(int i = 0; i < width*height*3; i++)
     {
@@ -378,7 +513,7 @@ int main()
     float pixel_size = screen_height/height;
 
 
-    int samples = 2000;
+    int samples = 100;
 
     //Rendering
     std::function<void(const int*, const int*, pcg32_random_t* rng)> render = 
@@ -403,6 +538,6 @@ int main()
             }
         };
     ParallelRender paral(render);
-    paral.Execute(width, height, 10);
+    paral.Execute(width, height, 4);
     SaveImage(RGB, width, height);
 }
