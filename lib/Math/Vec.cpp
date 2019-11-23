@@ -121,6 +121,8 @@ Vec3<Real> worldtolocal(const Vec3<Real>& w, const Vec3<Real>& e0, const Vec3<Re
 
 template class Vec3<float>;
 template class Vec3<double>;
+template Vec3<float> operator*(const float t, const Vec3<float>& vec);
+template Vec3<float> operator*(const Vec3<float>& vec, const float t);
 template std::ostream& operator<<(std::ostream&, const Vec3<float>&);
 template std::ostream& operator<<(std::ostream&, const Vec3<double>&);
 template void ONB(const Vec3<float>& n, Vec3<float>& b1, Vec3<float>& b2);

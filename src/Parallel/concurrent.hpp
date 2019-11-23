@@ -68,8 +68,12 @@ void ParallelRender::Execute(const int width, const int height, const int split_
                         have_task = true;
                     }
                 }
-                if(!have_task) return;
-
+                if(!have_task)
+                {
+                    auto this_thread = std::this_thread::get_id();
+                    std::cout << "finish: thread[" << this_thread << "]" << std::endl;
+                    return;
+                }
                 render(upper_left, bottom_right, rng);
             }
         };

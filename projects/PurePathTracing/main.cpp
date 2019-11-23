@@ -160,6 +160,10 @@ public:
     std::unique_ptr<Real[]> normals;
 };
 
+float gamma(float x)
+{
+    return std::pow(x, 1/2.2f);
+}
 
 //Utility Functions!!
 void SaveImage(const float *rgb, int width, int height)  // To PNG
@@ -170,9 +174,9 @@ void SaveImage(const float *rgb, int width, int height)  // To PNG
     for (int x = 0; x < width; x++) 
     {
       int index = y * width + x;
-      pixel_colors[index * 3 + 0] = static_cast<unsigned char>(std::max(0.0f, std::min(rgb[index * 3 + 0] * 255.0f, 255.0f)));
-      pixel_colors[index * 3 + 1] = static_cast<unsigned char>(std::max(0.0f, std::min(rgb[index * 3 + 1] * 255.0f, 255.0f)));
-      pixel_colors[index * 3 + 2] = static_cast<unsigned char>(std::max(0.0f, std::min(rgb[index * 3 + 2] * 255.0f, 255.0f)));
+      pixel_colors[index * 3 + 0] = static_cast<unsigned char>(std::max(0.0f, std::min(gamma(rgb[index * 3 + 0]) * 255.0f, 255.0f)));
+      pixel_colors[index * 3 + 1] = static_cast<unsigned char>(std::max(0.0f, std::min(gamma(rgb[index * 3 + 1]) * 255.0f, 255.0f)));
+      pixel_colors[index * 3 + 2] = static_cast<unsigned char>(std::max(0.0f, std::min(gamma(rgb[index * 3 + 2]) * 255.0f, 255.0f)));
     }
   }
   stbi_write_png("output.png", width, height, 3, &(pixel_colors[0]), width * 3);
@@ -483,14 +487,14 @@ Vec3<float> Trace(const float* firstRay_dir, const float* firstRay_origin, const
 int main()
 {
     //IBL
-    IBL ibl("../../../map_textures/PaperMill_E_3k.hdr");
+    IBL ibl("../../../map_textures/railway_bridges_16k.hdr");
 
     //shape
     std::vector<float> vertices;
     std::vector<int> indices;
     MaterialData<float> mat_infos;
     VertexData<float> vertex_infos;
-    OBJloader load("../../../objects/color_bunnys.obj", "../../../objects");
+    OBJloader load("../../../objects/monkey_box.obj", "../../../objects");
     float scale = 0.5;
     LoadObj_Single_Object(load, vertices, indices, mat_infos, vertex_infos,scale);
 
@@ -504,8 +508,15 @@ int main()
 
 
     //Camera
-    float cameraPos[3] = {0.0f, 1.0f, 9.0f};
-    float cameraForward[3] = {0.0f, 0.0f, -1.0f};
+    float theta = 70.0f * M_PI/180.0f;
+    float phi =   135.0f * M_PI/180.0f;
+    float r = 9.0f;
+    float x = r * std::sin(theta) * std::cos(phi);
+    float y = r * std::cos(theta);
+    float z = r * std::sin(theta) * std::sin(phi);
+
+    float cameraPos[3] = {x, y, z};
+    float cameraForward[3] = {-x/r, -y/r, -z/r};
     PinholeCamera<float> pincam(cameraPos, cameraForward);
 
 
@@ -521,7 +532,7 @@ int main()
     float pixel_size = screen_height/height;
 
 
-    int samples = 10;
+    int samples = 100;
 
     //Rendering
     std::function<void(const int*, const int*, pcg32_random_t* rng)> render = 
@@ -546,6 +557,6 @@ int main()
             }
         };
     ParallelRender paral(render);
-    paral.Execute(width, height, 4);
+    paral.Execute(width, height, 20);
     SaveImage(RGB, width, height);
 }
