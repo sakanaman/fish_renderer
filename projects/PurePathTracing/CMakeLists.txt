@@ -7,4 +7,4 @@ target_include_directories(path_tracing_test
     PRIVATE ${CMAKE_SOURCE_DIR}/ext/stb
     PRIVATE ${CMAKE_SOURCE_DIR}/ext/tinyobjloader
     PRIVATE ${CMAKE_SOURCE_DIR}/lib/Math)
-    target_link_libraries(path_tracing_test Camera random Accelerator Vec stb_image_write tinyobjloader stb_image)
+    target_link_libraries(path_tracing_test Camera random parallel Accelerator Vec stb_image_write tinyobjloader stb_image)
