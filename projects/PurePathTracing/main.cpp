@@ -361,7 +361,7 @@ public:
 
 
 Vec3<float> Trace(const float* firstRay_dir, const float* firstRay_origin, const MaterialData<float>& mat_infos, const IBL& ibl,
-                  const VertexData<float>& vertex_infos ,const BinaryBVH<float, TriangleData<float>>& bvh, pcg32_random_t* rng)
+                  const VertexData<float>& vertex_infos ,const BinaryBVH<float, TriangleData<float>>& bvh, RandomManager& rnd_manager)
 {
     Vec3<float> throughput(1.0f, 1.0f, 1.0f);
     Vec3<float> I(0.0f, 0.0f, 0.0f);
@@ -387,7 +387,7 @@ Vec3<float> Trace(const float* firstRay_dir, const float* firstRay_origin, const
             #ifdef NEE
             float phi, theta;
             float Le[3] = {0.0f, 0.0f, 0.0f};
-            float r1 = rnd(rng), r2 = rnd(rng);
+            float r1 = rnd_manager.GetRND(), r2 = rnd_manager.GetRND();
             float nee_pdf = ibl.sample(r1, r2, &phi, &theta, Le);
             
             //std::cout << Vec3<float>(Le) << std::endl;
@@ -421,8 +421,8 @@ Vec3<float> Trace(const float* firstRay_dir, const float* firstRay_origin, const
             #endif
 
             //BRDF sampling
-            float u1 = rnd(rng);
-            float u2 = rnd(rng);
+            float u1 = rnd_manager.GetRND();
+            float u2 = rnd_manager.GetRND();
             Vec3<float> wi = randomCosineHemisphere(u1, u2, orienting_normal);
 
             comingRay = Ray(hitPos + 0.001f * orienting_normal, wi);
@@ -435,7 +435,7 @@ Vec3<float> Trace(const float* firstRay_dir, const float* firstRay_origin, const
             // float Pr = std::max({throughput[0], throughput[1], throughput[2]});
             //russian roulette
             Pr *= 0.96;
-            if(rnd(rng) < Pr)
+            if(rnd_manager.GetRND() < Pr)
             {
                 throughput  = throughput * (1.0f/Pr);
             }
@@ -535,8 +535,8 @@ int main()
     int samples = 100;
 
     //Rendering
-    std::function<void(const int*, const int*, pcg32_random_t* rng)> render = 
-        [&](const int* upper_left, const int* bottom_right, pcg32_random_t* rng)
+    std::function<void(const int*, const int*, RandomManager&)> render = 
+        [&](const int* upper_left, const int* bottom_right, RandomManager& rnd_manager)
         {
             for(int x = upper_left[0]; x <  bottom_right[0]; ++x)
             {
@@ -544,11 +544,11 @@ int main()
                 {
                     for(int i = 0; i < samples; ++i)
                     {
-                        float u = x * pixel_size - 0.5f * pixel_size * width + pixel_size * rnd(rng);
-                        float v = y * pixel_size - 0.5f * pixel_size * height + pixel_size * rnd(rng);
+                        float u = x * pixel_size - 0.5f * pixel_size * width + pixel_size * rnd_manager.GetRND();
+                        float v = y * pixel_size - 0.5f * pixel_size * height + pixel_size * rnd_manager.GetRND();
                         float ray_dir[3], ray_origin[3];
                         pincam.CreateFirstRay(u, v, ray_origin, ray_dir);
-                        Vec3<float> result = Trace(ray_dir, ray_origin, mat_infos, ibl, vertex_infos, bvh, rng);
+                        Vec3<float> result = Trace(ray_dir, ray_origin, mat_infos, ibl, vertex_infos, bvh, rnd_manager);
                         RGB[3*(width * y + x) + 0] += result[0]/samples;
                         RGB[3*(width * y + x) + 1] += result[1]/samples;
                         RGB[3*(width * y + x) + 2] += result[2]/samples;

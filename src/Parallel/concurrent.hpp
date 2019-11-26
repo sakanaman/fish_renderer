@@ -9,21 +9,36 @@
 #include <iostream>
 #include "random.hpp"
 
+class RandomManager
+{
+public:
+    RandomManager()
+    {
+        initRNG(&rnd_class);
+    }
+    float GetRND()
+    {
+        return rnd(&rnd_class);
+    }
+private:
+    pcg32_random_t rnd_class;
+};
+
 //task allocate with tile splitt
 class ParallelRender
 {
 public:
-    ParallelRender(const std::function<void(const int*,const int*, pcg32_random_t*)>& _render);
+    ParallelRender(const std::function<void(const int*,const int*, RandomManager&)>& _render);
     void Execute(const int width, const int height, const int split_num);
 private:
     std::atomic<int> count;
     std::mutex mut;
-    std::function<void(const int*, const int*, pcg32_random_t*)> render;
+    std::function<void(const int*, const int*, RandomManager&)> render;
     // --> render function argument = (upper_left[2], bottom_right[2], rng_ptr)
 };
 
 //
-ParallelRender::ParallelRender(const std::function<void(const int*, const int*, pcg32_random_t*)>& _render):count(0),render(_render){}
+ParallelRender::ParallelRender(const std::function<void(const int*, const int*, RandomManager&)>& _render):count(0),render(_render){}
 
 
 void ParallelRender::Execute(const int width, const int height, const int split_num)
@@ -45,7 +60,7 @@ void ParallelRender::Execute(const int width, const int height, const int split_
     // j|
     //  |
     auto renderthread = 
-        [&](pcg32_random_t* rng)
+        [&](RandomManager& rnd_manager)
         {
             int upper_left[2] = {-1, -1};
             int bottom_right[2] = {-1, -1};
@@ -74,21 +89,17 @@ void ParallelRender::Execute(const int width, const int height, const int split_
                     std::cout << "finish: thread[" << this_thread << "]" << std::endl;
                     return;
                 }
-                render(upper_left, bottom_right, rng);
+                render(upper_left, bottom_right, rnd_manager);
             }
         };
 
     int thread_num = std::thread::hardware_concurrency();
-    std::vector<pcg32_random_t> rngs(thread_num);
-    for(int i = 0; i < thread_num; ++i)
-    {
-        initRNG(&(rngs[i]));
-    }
+    std::vector<RandomManager> rngs(thread_num);
 
     std::vector<std::thread> threads(thread_num);
     for(int i = 0; i < thread_num; ++i)
     {
-        threads[i] = std::thread(renderthread, &(rngs[i]));
+        threads[i] = std::thread(renderthread, std::ref(rngs[i]));
     }
 
     for(int i = 0; i < thread_num; i++)
