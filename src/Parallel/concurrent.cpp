@@ -23,8 +23,8 @@ void ParallelRender::Execute(const int width, const int height, const int split_
     h[split_num] = height;
     w[split_num] = width;
 
-    //     i    
-    //  ________
+    //      i    
+    //   ________
     //  |
     // j|
     //  |

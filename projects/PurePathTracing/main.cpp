@@ -224,7 +224,8 @@ void LoadObj_Single_Object(OBJloader& loader, std::vector<float>& vertices, std:
     for(size_t i = 0; i < loader.attrib.vertices.size(); ++i)
     {
         vertices[i] = loader.attrib.vertices[i];
-        //if(i % 3 == 2) vertices[i] *= -1.0f;
+        
+        if(i % 3 == 0) vertices[i] *= -1.0f;
     }
 
     // if(loader.attrib.normals.size() > 0)
@@ -494,7 +495,7 @@ int main()
     std::vector<int> indices;
     MaterialData<float> mat_infos;
     VertexData<float> vertex_infos;
-    OBJloader load("../../../objects/monkey_box.obj", "../../../objects");
+    OBJloader load("../../../objects/debug.obj", "../../../objects");
     float scale = 0.5;
     LoadObj_Single_Object(load, vertices, indices, mat_infos, vertex_infos,scale);
 
