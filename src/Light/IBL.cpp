@@ -79,8 +79,9 @@ void IBL::angle2uv(float* u, float* v, const float theta, const float phi) const
 
 void IBL::GetLe(float* Le, const float theta, const float phi) const
 {
+    float modefy_phi = 2.0f*M_PI - phi;//modify inversion
     float u, v;
-    angle2uv(&u, &v, theta, phi);
+    angle2uv(&u, &v, theta, modefy_phi);
     int x, y;
     uv2xy(&x, &y, u, v);
     Le[0] = data[3 * (w * y + x) + 0];
@@ -111,7 +112,7 @@ float IBL::sample(const float r1, const float r2, float* phi, float* theta, floa
     Le[1] = data[3 * (w * v + u) + 1];
     Le[2] = data[3 * (w * v + u) + 2];
     *theta = dt * 0.5 + dt * v;
-    *phi = float(u)/w * 2.0f * M_PI;
+    *phi = 2.0f * M_PI - float(u)/w * 2.0f * M_PI;//modify inversion
     float PDF = pdfV * pdfU / (invPdfNorm * std::sin(*theta));
     return PDF;
 }
