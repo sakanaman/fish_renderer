@@ -13,6 +13,7 @@ public:
     Vec3 operator+(const Vec3& vec) const;
     Vec3 operator-(const Vec3& vec) const;
     Vec3 operator*(const Vec3& vec) const;
+    Vec3 operator/(const Vec3& vec) const;
     Real length() const;
     Real dot(const Vec3& vec) const;
     Vec3 cross(const Vec3& vec) const;

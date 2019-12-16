@@ -42,6 +42,14 @@ Vec3<Real> Vec3<Real>::operator*(const Vec3& vec) const
 }
 
 template<class Real>
+Vec3<Real> Vec3<Real>::operator/(const Vec3& vec) const
+{
+    return Vec3(v[0] / vec[0],
+                v[1] / vec[1],
+                v[2] / vec[2]);
+}
+
+template<class Real>
 Vec3<Real> operator*(const Real t, const Vec3<Real>& vec)
 {
     return Vec3<Real>(t * vec[0], 
