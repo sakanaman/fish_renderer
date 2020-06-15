@@ -109,14 +109,14 @@ void LoadObj_Single_Object(OBJloader& loader, std::vector<float>& vertices, std:
     //     }
     // }
 
-    // if(loader.attrib.texcoords.size() > 0)
-    // {
-    //     vertex_infos.uvs.reset(new float[loader.attrib.texcoords.size()]);
-    //     for(int i = 0; i < loader.attrib.texcoords.size(); ++i)
-    //     {
-    //         vertex_infos.uvs[i] = loader.attrib.texcoords[i];
-    //     }
-    // }
+    if(loader.attrib.texcoords.size() > 0)
+    {
+        vertex_infos.uvs.reset(new float[loader.attrib.texcoords.size()]);
+        for(int i = 0; i < loader.attrib.texcoords.size(); ++i)
+        {
+            vertex_infos.uvs[i] = loader.attrib.texcoords[i];
+        }
+    }
 
     int num_faces = 0;
     for(size_t i  = 0; i < loader.shapes.size(); ++i)
@@ -270,7 +270,7 @@ Vec3<float> Trace(const float* firstRay_dir, const float* firstRay_origin, const
             if(shadowdir.dot(orienting_normal) > 0.0f)
             {
                 float shadowdir_ary[3] = {shadowdir[0], shadowdir[1], shadowdir[2]};
-                Vec3<float> shadoworigin  = hitPos + 0.001f * orienting_normal;
+                Vec3<float> shadoworigin  = hitPos /*+ 0.001f * orienting_normal*/;
                 float shadoworigin_ary[3] = {shadoworigin[0], shadoworigin[1], shadoworigin[2]};
                 Hit<float> shadow_hit;
                 if(bvh.Traverse(shadow_hit, shadoworigin_ary, shadowdir_ary, 0))
@@ -298,7 +298,7 @@ Vec3<float> Trace(const float* firstRay_dir, const float* firstRay_origin, const
             float u2 = rnd_manager.GetRND();
             Vec3<float> wi = randomCosineHemisphere(u1, u2, orienting_normal);
 
-            comingRay = Ray(hitPos + 0.001f * orienting_normal, wi);
+            comingRay = Ray(hitPos /*+ 0.001f * orienting_normal*/, wi);
 
             // store throughput
             throughput[0] *= mat_infos.diffuses[3 * mat_infos.mat_indices[hit.GetID()] + 0];
@@ -353,14 +353,60 @@ Vec3<float> Trace(const float* firstRay_dir, const float* firstRay_origin, const
 }
 
 
+Vec3<float> Trace_debug(const float* firstRay_dir, const float* firstRay_origin, const MaterialData<float>& mat_infos, const IBL& ibl,
+                  const VertexData<float>& vertex_infos ,const BinaryBVH<float, TriangleData<float>>& bvh, RandomManager& rnd_manager)
+{
+    Vec3<float> light_dir = Vec3<float>(-1.0f, 2.0f, 0.0f).normalize();
+
+    Vec3<float> throughput(1.0f, 1.0f, 1.0f);
+    Vec3<float> I(0.0f, 0.0f, 0.0f);
+    Ray comingRay(firstRay_origin, firstRay_dir);
+
+    Hit<float> hit;
+    float comingRay_origin[] = {comingRay.origin[0], comingRay.origin[1], comingRay.origin[2]};
+    float comingRay_dir[] = {comingRay.dir[0], comingRay.dir[1], comingRay.dir[2]};
+    bool is_hit = bvh.Traverse(hit, comingRay_origin, comingRay_dir, 0);
+
+    if(is_hit)
+    {
+        Vec3<float> n(hit.GetNg()[0], hit.GetNg()[1], hit.GetNg()[2]);
+        Vec3<float> hitPos(hit.GetPos()[0], hit.GetPos()[1], hit.GetPos()[2]);
+        Vec3<float> orienting_normal = n.dot(comingRay.dir) < 0 ? n : -1.0f * n;
+        Vec3<float> norm_color{(n[0] + 1)*0.5f,
+                               (n[1] + 1)*0.5f,
+                               (n[2] + 1)*0.5f};
 
 
+        Vec3<float> shadowdir = light_dir;
+        float shadowdir_ary[3] = {shadowdir[0], shadowdir[1], shadowdir[2]};
+        Vec3<float> shadoworigin  =  hitPos;
+        float shadoworigin_ary[3] = {shadoworigin[0], shadoworigin[1], shadoworigin[2]};
+        Hit<float> shadow_hit;
+        if(bvh.Traverse(shadow_hit, shadoworigin_ary, shadowdir_ary, 0))
+        {
+            if(shadow_hit.GetID() == hit.GetID()) //oh..self intersection...
+            {
+                return {0.0f, 0.0f, 0.0f};
+            }
+            return {0.3f * norm_color[0], 
+                    0.3f * norm_color[1],
+                    0.3f * norm_color[2]};
+        }
+        return {norm_color[0], 
+                norm_color[1],
+                norm_color[2]};
+    }
+    else
+    {
+        return {0.0f, 0.0f, 0.0f};
+    }
+}
 
 
 int main()
 {
     //IBL
-    IBL ibl("../../../map_textures/railway_bridges_16k.hdr");
+    IBL ibl("../../../map_textures/PaperMill_E_3k.hdr");
 
     //shape
     std::vector<float> vertices;
@@ -382,13 +428,13 @@ int main()
 
     //Camera
     float theta = 70.0f * M_PI/180.0f;
-    float phi =   135.0f * M_PI/180.0f;
-    float r = 9.0f;
+    float phi =   270.0f * M_PI/180.0f;
+    float r = 6.0f;
     float x = r * std::sin(theta) * std::cos(phi);
     float y = r * std::cos(theta);
     float z = r * std::sin(theta) * std::sin(phi);
 
-    float cameraPos[3] = {x, y, z};
+    float cameraPos[3] = {x, y + 2.0f, z};
     float cameraForward[3] = {-x/r, -y/r, -z/r};
     PinholeCamera<float> pincam(cameraPos, cameraForward);
 

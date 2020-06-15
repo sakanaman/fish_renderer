@@ -643,7 +643,7 @@ TriangleData<Real>::TriangleData(){};
 template<class Real>
 bool TriangleData<Real>::intersect(const int geomID, const Real* ray_origin , const Real* ray_dir, Hit<Real>& hit) const
 {
-    Real v0[3], v1[3], v2[3];
+    double v0[3], v1[3], v2[3];
 
     int index[3] = {indices[3 * geomID + 0], 
                     indices[3 * geomID + 1],
@@ -661,27 +661,27 @@ bool TriangleData<Real>::intersect(const int geomID, const Real* ray_origin , co
     v2[1] = vertices[3 * index[2] + 1];
     v2[2] = vertices[3 * index[2] + 2];
 
-    Real e1[3] = {v1[0] - v0[0],
+    double e1[3] = {v1[0] - v0[0],
                    v1[1] - v0[1],
                    v1[2] - v0[2]};
-    Real e2[3] = {v2[0] - v0[0],
+    double e2[3] = {v2[0] - v0[0],
                    v2[1] - v0[1],
                    v2[2] - v0[2]};
-    Real d[3] = {ray_dir[0], 
+    double d[3] = {ray_dir[0], 
                   ray_dir[1], 
                   ray_dir[2]};
     
-    Real r[3] = {ray_origin[0] - v0[0],
+    double r[3] = {ray_origin[0] - v0[0],
                   ray_origin[1] - v0[1],
                   ray_origin[2] - v0[2]};
 
-    Real alpha[3] = {d[1] * e2[2] - d[2] * e2[1],
+    double alpha[3] = {d[1] * e2[2] - d[2] * e2[1],
                       d[2] * e2[0] - d[0] * e2[2],
                       d[0] * e2[1] - d[1] * e2[0]};
-    Real beta[3] =  {r[1] * e1[2] - r[2] * e1[1],
+    double beta[3] =  {r[1] * e1[2] - r[2] * e1[1],
                       r[2] * e1[0] - r[0] * e1[2],
                       r[0] * e1[1] - r[1] * e1[0]};
-    Real denominator = alpha[0] * e1[0] + 
+    double denominator = alpha[0] * e1[0] + 
                         alpha[1] * e1[1] + 
                         alpha[2] * e1[2];
 
@@ -691,13 +691,13 @@ bool TriangleData<Real>::intersect(const int geomID, const Real* ray_origin , co
     }
     else
     {
-        Real _t = 1.0f/denominator * (beta[0] * e2[0] + 
+        double _t = 1.0/denominator * (beta[0] * e2[0] + 
                                        beta[1] * e2[1] + 
                                        beta[2] * e2[2]);
-        Real x = 1.0f/denominator * (alpha[0] * r[0] + 
+        double x = 1.0/denominator * (alpha[0] * r[0] + 
                                       alpha[1] * r[1] + 
                                       alpha[2] * r[2]);
-        Real y = 1.0f/denominator * (beta[0] * d[0] + 
+        double y = 1.0/denominator * (beta[0] * d[0] + 
                                       beta[1] * d[1] + 
                                       beta[2] * d[2]);
 
@@ -706,10 +706,10 @@ bool TriangleData<Real>::intersect(const int geomID, const Real* ray_origin , co
             hit.SetT(_t);
             hit.SetID(geomID);
 
-            Real hitNormal[3] = {e2[1]*e1[2] - e2[2]*e1[1],
-                                  e2[2]*e1[0] - e2[0]*e1[2],
-                                  e2[0]*e1[1] - e2[1]*e1[0]};
-            Real ng_len = std::sqrt(hitNormal[0] * hitNormal[0] + 
+            Real hitNormal[3] = {Real(e2[1]*e1[2] - e2[2]*e1[1]),
+                                 Real(e2[2]*e1[0] - e2[0]*e1[2]),
+                                 Real(e2[0]*e1[1] - e2[1]*e1[0])};
+            double ng_len = std::sqrt(hitNormal[0] * hitNormal[0] + 
                                      hitNormal[1] * hitNormal[1] +
                                      hitNormal[2] * hitNormal[2]);
             hitNormal[0] /= 1.0 * ng_len;
@@ -717,9 +717,9 @@ bool TriangleData<Real>::intersect(const int geomID, const Real* ray_origin , co
             hitNormal[2] /= 1.0 * ng_len;
             hit.SetNg(hitNormal);
 
-            Real hitPos[3] = {ray_origin[0] + _t * ray_dir[0],
-                               ray_origin[1] + _t * ray_dir[1],
-                               ray_origin[2] + _t * ray_dir[2]};
+            Real hitPos[3] = {Real((1.0 - x - y)*v0[0] + x*v1[0] + y*v2[0]),
+                              Real((1.0 - x - y)*v0[1] + x*v1[1] + y*v2[1]),
+                              Real((1.0 - x - y)*v0[2] + x*v1[2] + y*v2[2])};
             hit.SetPos(hitPos);
             
             return true;

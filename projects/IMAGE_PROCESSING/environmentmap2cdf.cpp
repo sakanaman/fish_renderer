@@ -132,18 +132,17 @@ int main()
     }
 
     pcg32_random_t rng;
-    initRNG(&rng);
     int samples = 10000000;
     for(int i = 0; i < samples; ++i)
     {
         int u, v;
 
         float maxUval = PUDists[width - 1];
-        auto pUPos = std::lower_bound(PUDists.begin(), PUDists.end(), maxUval * rnd(&rng));
+        auto pUPos = std::lower_bound(PUDists.begin(), PUDists.end(), maxUval * rng.rnd());
         u = pUPos - PUDists.begin();
 
         float maxVval = PVDists.at(u).at(height - 1);
-        auto pVPos = std::lower_bound(PVDists.at(u).begin(), PVDists.at(u).end(), maxVval * rnd(&rng));
+        auto pVPos = std::lower_bound(PVDists.at(u).begin(), PVDists.at(u).end(), maxVval * rng.rnd());
         v = pVPos - PVDists.at(u).begin();
 
         count_list[width * v + u] += 1;
