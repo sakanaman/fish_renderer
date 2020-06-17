@@ -5,38 +5,61 @@
 #include <memory>
 #include <iostream>
 
+// template<class Real>
+// class MaterialData
+// {
+// public:
+//     std::unique_ptr<int[]> mat_indices;
+//     std::unique_ptr<Real[]> speculers;
+//     std::unique_ptr<Real[]> diffuses;
+//     std::unique_ptr<Real[]> transmits;
+//     std::unique_ptr<Real[]> emissions;
+//     std::unique_ptr<Real[]> roughnesss;
+//     std::unique_ptr<Real[]> nis;
+// };
 template<class Real>
 class MaterialData
 {
 public:
-    std::unique_ptr<int[]> mat_indices;
-    std::unique_ptr<Real[]> speculers;
-    std::unique_ptr<Real[]> diffuses;
-    std::unique_ptr<Real[]> transmits;
-    std::unique_ptr<Real[]> emissions;
-    std::unique_ptr<Real[]> roughnesss;
-    std::unique_ptr<Real[]> nis;
+    std::vector<int> mat_indices;
+    std::vector<Real> speculers;
+    std::vector<Real> diffuses;
+    std::vector<Real> transmits;
+    std::vector<Real> emissions;
+    std::vector<Real> roughnesss;
+    std::vector<Real> nis;
 };
+
+// template<class Real>
+// class VertexData
+// {
+// public:
+//     //uvs
+//     std::unique_ptr<int[]> uv_indices;
+//     std::unique_ptr<Real[]> uvs;
+//     //normals
+//     std::unique_ptr<int[]> normal_indices;
+//     std::unique_ptr<Real[]> normals;
+// };
 
 template<class Real>
 class VertexData
 {
 public:
     //uvs
-    std::unique_ptr<int[]> uv_indices;
-    std::unique_ptr<Real[]> uvs;
+    std::vector<int> uv_indices;
+    std::vector<Real> uvs;
     //normals
-    std::unique_ptr<int[]> normal_indices;
-    std::unique_ptr<Real[]> normals;
+    std::vector<int> normal_indices;
+    std::vector<Real> normals;
 };
 
 template<class Real>
 class SceneData
 {
 public:
-private:
-    VertexData<Real> v_data;
-    MaterialData<Real> mat_data;
+    VertexData<Real> vertex_infos;
+    MaterialData<Real> mat_infos;
 };
 
 class OBJloader
@@ -54,7 +77,7 @@ public:
 };
 
 void LoadObj_Single_Object(OBJloader& loader, std::vector<float>& vertices, std::vector<int>& indices, 
-                          MaterialData<float>& mat_infos, VertexData<float>& vertex_infos, float scale)
+                          SceneData<float>& scenedata, float scale)
 {
 
     bool ret = tinyobj::LoadObj(&loader.attrib, &loader.shapes, &loader.materials, 
@@ -116,7 +139,7 @@ void LoadObj_Single_Object(OBJloader& loader, std::vector<float>& vertices, std:
     // vertex_infos.normal_indices.reset(new int[num_faces * 3 * 3]);
     // vertex_infos.uv_indices.reset(new int[num_faces * 3 * 2]);
     indices.resize(num_faces * 3);
-    mat_infos.mat_indices.reset(new int[num_faces]);
+    scenedata.mat_infos.mat_indices.resize(num_faces);
     size_t offset = 0;
     for(size_t i = 0; i < loader.shapes.size(); ++i)
     {
@@ -143,7 +166,7 @@ void LoadObj_Single_Object(OBJloader& loader, std::vector<float>& vertices, std:
             indices[3 * (offset + f) + 2] = 
                 loader.shapes[i].mesh.indices[3 * f + 2].vertex_index;
 
-            mat_infos.mat_indices[offset + f] = 
+            scenedata.mat_infos.mat_indices[offset + f] = 
                 loader.shapes[i].mesh.material_ids[f];
         }
         offset += loader.shapes[i].mesh.indices.size()/3;
@@ -153,36 +176,36 @@ void LoadObj_Single_Object(OBJloader& loader, std::vector<float>& vertices, std:
 
 
     //material setting
-    mat_infos.diffuses.reset(new float[3 * loader.materials.size()]);
-    mat_infos.emissions.reset(new float[3 * loader.materials.size()]);
-    mat_infos.speculers.reset(new float[3 * loader.materials.size()]);
-    mat_infos.transmits.reset(new float[3 * loader.materials.size()]);
+    scenedata.mat_infos.diffuses.resize(3 * loader.materials.size());
+    scenedata.mat_infos.emissions.resize(3 * loader.materials.size());
+    scenedata.mat_infos.speculers.resize(3 * loader.materials.size());
+    scenedata.mat_infos.transmits.resize(3 * loader.materials.size());
     //mat_infos.roughnesss.reset(new float[loader.materials.size()]);
-    mat_infos.nis.reset(new float[loader.materials.size()]);
+    scenedata.mat_infos.nis.resize(loader.materials.size());
     for(int i = 0; i < loader.materials.size(); ++i)
     {
         //diffuse
-        mat_infos.diffuses[3 * i + 0] = loader.materials[i].diffuse[0];
-        mat_infos.diffuses[3 * i + 1] = loader.materials[i].diffuse[1];
-        mat_infos.diffuses[3 * i + 2] = loader.materials[i].diffuse[2];
+        scenedata.mat_infos.diffuses[3 * i + 0] = loader.materials[i].diffuse[0];
+        scenedata.mat_infos.diffuses[3 * i + 1] = loader.materials[i].diffuse[1];
+        scenedata.mat_infos.diffuses[3 * i + 2] = loader.materials[i].diffuse[2];
 
         //emission
-        mat_infos.emissions[3 * i + 0] = loader.materials[i].emission[0];
-        mat_infos.emissions[3 * i + 1] = loader.materials[i].emission[1];
-        mat_infos.emissions[3 * i + 2] = loader.materials[i].emission[2];
+        scenedata.mat_infos.emissions[3 * i + 0] = loader.materials[i].emission[0];
+        scenedata.mat_infos.emissions[3 * i + 1] = loader.materials[i].emission[1];
+        scenedata.mat_infos.emissions[3 * i + 2] = loader.materials[i].emission[2];
 
         //speculer
-        mat_infos.speculers[3 * i + 0] = loader.materials[i].specular[0];
-        mat_infos.speculers[3 * i + 1] = loader.materials[i].specular[1];
-        mat_infos.speculers[3 * i + 2] = loader.materials[i].specular[2];
+        scenedata.mat_infos.speculers[3 * i + 0] = loader.materials[i].specular[0];
+        scenedata.mat_infos.speculers[3 * i + 1] = loader.materials[i].specular[1];
+        scenedata.mat_infos.speculers[3 * i + 2] = loader.materials[i].specular[2];
 
         //transmit
-        mat_infos.transmits[3 * i + 0] = loader.materials[i].transmittance[0];
-        mat_infos.transmits[3 * i + 1] = loader.materials[i].transmittance[1];
-        mat_infos.transmits[3 * i + 2] = loader.materials[i].transmittance[2];
+        scenedata.mat_infos.transmits[3 * i + 0] = loader.materials[i].transmittance[0];
+        scenedata.mat_infos.transmits[3 * i + 1] = loader.materials[i].transmittance[1];
+        scenedata.mat_infos.transmits[3 * i + 2] = loader.materials[i].transmittance[2];
 
         //ior
-        mat_infos.nis[i] = loader.materials[i].ior;
+        scenedata.mat_infos.nis[i] = loader.materials[i].ior;
     }
 }
 
