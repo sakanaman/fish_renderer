@@ -15,7 +15,7 @@ Vec3<Real> eval_diffuse_bsdf(const Vec3<Real>& wi, const Vec3<Real>& wo,
 template<class Real>
 Real eval_diffuse_pdf(const Vec3<Real>& wi, const Vec3<Real>& wo)
 {
-    Real costheta = wo.y; //because y-up local coord
+    Real costheta = wi.y; //because y-up local coord
     return costheta * (1.0/M_PI);
 }
 
